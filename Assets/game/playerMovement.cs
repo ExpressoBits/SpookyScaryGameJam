@@ -4,10 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public interface IEntityTakeDamage {
-    void takeDamage(float damage, float knock, int dealerDir);
-}
-
 public class playerMovement : MonoBehaviour, IEntityTakeDamage
 {
     Rigidbody2D rb;
@@ -22,7 +18,9 @@ public class playerMovement : MonoBehaviour, IEntityTakeDamage
     float lifeDisplay = 100.0f;
 
     //Direção do jogador
-    public int dirX = 1;
+    float speed = 5.0f;
+    bool isWalking = false;
+    public Vector3 dir = new Vector3(1, 0, 0);
 
     void Start() {
        rb = GetComponent<Rigidbody2D>();
@@ -30,37 +28,33 @@ public class playerMovement : MonoBehaviour, IEntityTakeDamage
 
     void Update() {
         //Barra de vida
-        Vector3 newScale = lifebarUI.transform.localScale;
-        newScale.x = lifeDisplay/100.0f;
-        lifebarUI.transform.localScale = newScale;
-
         lifeDisplay = Mathf.Lerp(lifeDisplay, life, 15.0f * Time.deltaTime);
+        lifebarUI.transform.localScale = new Vector3(lifeDisplay/100.0f, 1, 1);
+        
+        //Movimentação
+        float inputX = Input.GetAxisRaw("Horizontal");
+        float inputY = Input.GetAxisRaw("Vertical");
+        Vector3 pos = new Vector3(inputX, inputY, 0).normalized;
 
-        if (Input.GetKeyDown("q"))
-            life -= 10.0f;
+        isWalking = (inputX != 0 && inputY != 0);
+        transform.position += pos * speed * Time.deltaTime;
 
-        if (Input.GetKeyDown("right"))
-            dirX = 1;
-
-        if (Input.GetKeyDown("left"))
-            dirX = -1;
-
-        attackArea.transform.localPosition = new Vector3(0.13f * dirX, 0, 0);
-    }
-
-    void FixedUpdate() {
-        Vector2 pos = new Vector2();
-        pos.x = 5.0f * Input.GetAxisRaw("Horizontal") * Time.fixedDeltaTime;
-        pos.y = 5.0f * Input.GetAxisRaw("Vertical") * Time.fixedDeltaTime;
-
-        rb.MovePosition(rb.position + pos);
+        //Direção do jogador
+        if (inputX != 0)
+            dir.Set(inputX, 0, 0);
+        
+        else if (inputY != 0)
+            dir.Set(0, inputY, 0);
+        
 
         //Camera seguindo o player
         Vector3 camPos = new Vector3(rb.position.x, rb.position.y, -10);
-        Camera.main.transform.position = Vector3.Lerp(Camera.main.transform.position, camPos, Time.fixedDeltaTime * 5);
+        Camera.main.transform.position = Vector3.Lerp(Camera.main.transform.position, camPos, Time.deltaTime * 5);
     }
 
-    public void takeDamage(float damage, float knock, int dealerDir) {
-
+    public void takeDamage(float damage, float knockback, Vector3 dealerDir) {
+        life -= damage;
+        
+        transform.position += dealerDir * knockback;
     }
 }
